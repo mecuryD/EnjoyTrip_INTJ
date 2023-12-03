@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.trip.map.model.mapper.MapMapper">
+
+	<!-- 시도 코드 조회 -->
+	<select id="getSido" resultType="sidoDto">
+		select sidoCode, sidoName
+		from sido;
+	</select>
+
+	<!-- 구군 코드 조회 -->
+	<select id="getGugun" parameterType="Integer"
+		resultType="gugunDto">
+		select gugunCode, gugunName, sidoCode
+		from gugun
+		where
+		sidoCode = #{sidoCode};
+	</select>
+
+	<!-- 여행지 검색 조회 -->
+	<select id="searchMap" parameterType="searchDto"
+		resultType="attractionInfoDto">
+		select contentId, contentTypeId, title, addr1, addr2, zipcode, tel,
+		firstImage, sidoCode, gugunCode, latitude, longitude
+		from attraction_info
+		<where>
+			<if test="sidoCode!=0">sidoCode=#{sidoCode}</if>
+			<if test="gugunCode!=0">and gugunCode=#{gugunCode}</if>
+			<if test="contentTypeId!=0">and contentTypeId=#{contentTypeId}</if>
+			<if test="searchContent!=null">and title like CONCAT('%', #{searchContent}, '%');</if>
+		</where>
+	</select>
+
+	<!-- 여행지 상세 조회 -->
+	<select id="detailMap" parameterType="Integer"
+		resultType="attractionInfoDto">
+		select i.contentId, i.contentTypeId, i.title, i.addr1, i.addr2, i.zipcode, i.tel,
+		i.firstImage, i.sidoCode, i.gugunCode, i.latitude, i.longitude, d.overview
+		from attraction_info i left outer join attraction_description d
+		on i.contentId=d.contentId
+		where i.contentId=#{contentId};
+	</select>
+
+	<!-- 여행지 검색 데이터 저장 -->
+	<insert id="saveSearch" parameterType="searchDto">
+		insert into search(userId, birth, gender, sidoCode, gugunCode,
+		contentTypeId, searchContent)
+		values (
+		#{userId},
+		(select birth from user
+		where userId=#{userId}),
+		(select gender from user where
+		userId=#{userId}),
+		<choose>
+			<when test="sidoCode !=0 ">#{sidoCode},</when>
+			<otherwise>null,</otherwise>
+		</choose>
+		<choose>
+			<when test="gugunCode !=0 ">#{gugunCode},</when>
+			<otherwise>null,</otherwise>
+		</choose>
+		<choose>
+			<when test="contentTypeId !=0 ">#{contentTypeId},</when>
+			<otherwise>null,</otherwise>
+		</choose>
+		<choose>
+			<when test="searchContent != null ">#{searchContent})</when>
+			<otherwise>null</otherwise>
+		</choose>
+	</insert>
+
+	<!-- 여행지 찜 리스트 조회 -->
+	<select id="getMapHeart" parameterType="String" resultType="attractionInfoDto">
+		select i.contentId, i.contentTypeId, i.title, i.addr1, i.addr2, i.zipcode,
+		i.tel, i.firstImage, i.sidoCode, i.gugunCode, i.latitude, i.longitude
+		from heart h inner join attraction_info i
+		on h.contentId = i.contentId
+		where h.userId = #{userId}
+		order by h.heartCreateDate;
+	</select>
+	
+	<!-- 찜 여부 확인 -->
+	<select id="existHeart" parameterType="heartDto">
+		select userId, contentId, heartCreateDate
+		from heart
+		where userId=#{userId}
+		and contentId=#{contentId};
+	</select>
+	
+	<!-- 찜 하기 -->
+	<insert id="addHeart" parameterType="heartDto">
+		insert into heart(userId, contentId, heartCreateDate)
+		values (#{userId}, #{contentId}, now());
+	</insert>
+	
+	<!-- 찜 하기 해제 -->
+	<delete id="deleteHeart" parameterType="heartDto">
+		delete from heart
+		where userId=#{userId}
+		and contentId=#{contentId};
+	</delete>
+</mapper>

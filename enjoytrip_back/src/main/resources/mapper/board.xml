@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.trip.board.model.mapper.BoardMapper">
+	
+	<!-- 글 등록 (일반 유저)-->
+	<insert id="registerBoard" parameterType="boardDto">
+		insert into board (boardType, userId, boardSubject, boardContent, boardView, boardCreateDate) 
+		values (1, #{userId}, #{boardSubject}, #{boardContent}, 0, now())
+	</insert>
+	
+	<!-- 키워드 검색 -->
+	<sql id="search">
+		<if test="word != null and word != ''">
+			<if test="key == 'boardSubject'">
+				and subject like concat('%', #{word}, '%')
+			</if>
+			<if test="key != 'boardSubject'">
+				and ${key} = #{word}
+			</if>
+		</if>
+	</sql>
+	
+	<!-- 공지사항 목록 (관리자) -->
+	<select id="listNotice" resultType="boardDto">
+		select boardType, boardId, userId, boardSubject, boardContent, boardView, boardCreateDate
+		from (
+				select boardType, boardId, userId, boardSubject, boardContent, boardView, boardCreateDate
+				from board
+		        where boardType=0
+		        order by boardcreateDate desc
+		     ) board
+		limit 3;
+	</select>
+	
+	<!-- 글 전체 목록 (일반 유저) -->
+	<select id="listBoard" resultType="boardDto">
+		select b.boardType, b.boardId, b.userId, b.boardSubject, b.boardContent, b.boardView, b.boardCreateDate, count(c.commentId) as 'commentCount' 
+		from board b left outer join comment c
+		on b.boardId=c.boardId
+		where b.boardType=1
+		group by b.boardId
+		order by b.boardId desc;
+	</select>
+	
+	<!-- 글 전체 개수 조회 -->
+	<select id="getTotalArticleCount" parameterType="map" resultType="int">
+		select count(boardId)
+		from board
+	</select>
+	
+	<!-- 글 상세 조회 -->
+	<select id="getBoard" parameterType="int" resultType="boardDto">
+		select boardType, boardId, userId, boardSubject, boardContent, boardView, boardCreateDate
+		from board
+		where boardId = #{boardId}
+	</select>
+
+	<!-- 글 조회수 업데이트 -->
+	<update id="updateBoardView" parameterType="int">
+		update board
+		set boardView = boardView + 1
+		where boardId = #{boardId}
+	</update>
+	
+	<!-- 글 수정 -->
+	<update id="modifyBoard" parameterType="boardDto">
+		update board
+		set boardSubject = #{boardSubject}, boardContent = #{boardContent}
+		where boardId = #{boardId}
+	</update>
+	
+	<!-- 글 삭제 -->
+	<delete id="deleteBoard" parameterType="int">
+		delete from board
+		where boardId = #{boardId}
+	</delete>
+	
+	<!-- 댓글 등록 -->
+	<insert id="registerComment" parameterType="commentDto">
+		insert into comment(boardId, userId, commentContent, commentCreatedDate)
+		values (#{boardId}, #{userId}, #{commentContent}, now());
+	</insert>
+	
+	<!-- 댓글 조회 -->
+	<select id="listComment" parameterType="int" resultType="commentDto">
+		select userId, commentId, commentContent, commentCreatedDate
+		from comment
+		where boardId = #{boardId}
+		order by commentCreatedDate asc;
+	</select>
+	
+	<!-- 댓글 삭제 -->
+	<delete id="deleteComment" parameterType="Integer">
+		delete from comment
+		where commentId = #{commentId};
+	</delete>
+</mapper>

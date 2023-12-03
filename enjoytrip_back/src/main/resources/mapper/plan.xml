@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.trip.plan.model.mapper.PlanMapper">
+
+	<resultMap id="planDetailMap" type="planDto">
+		<id property="planId" column="planId"></id>
+		<id property="userId" column="userId"></id>
+		<id property="planName" column="planName"></id>
+		<id property="startDate" column="startDate"></id>
+		<id property="endDate" column="endDate"></id>
+		<id property="planMemo" column="planMemo"></id>
+		<collection property="planInfos" ofType="planInfoDto">
+			<id property="planId" column="planId"></id>
+			<id property="planOrder" column="planOrder"></id>
+			<id property="contentId" column="contentId"></id>
+			<id property="contentMemo" column="contentMemo"></id>
+		</collection>
+	</resultMap>
+
+	<!-- 여행 계획 등록 / 계획 소개 -->
+	<insert id="registPlan" parameterType="planDto">
+		insert into plan(userId,
+		planName, startDate, endDate, planMemo)
+		values (#{userId},#{planName},
+		#{startDate}, #{endDate}, #{planMemo});
+	</insert>
+	
+	<!-- 여행 계획 등록 / 여행 경로 -->
+	<insert id="registPlanInfo" parameterType="java.util.List">
+		insert into plan_info(planId, planOrder, contentId, contentMemo)
+		values
+		<foreach collection="list" item="item" index="index" separator=",">
+        (
+            (select max(planId) from plan),
+            #{index}+1,
+            #{item.contentId},
+            #{item.contentMemo}
+        )
+        </foreach>
+	</insert>
+
+	<!-- 여행 계획 목록 / 전체 목록 -->
+	<select id="listPlan" resultType="planDto">
+		select planId, userId, planName, startDate, endDate
+		from plan
+		order by planId desc;
+	</select>
+
+	<!-- 여행 계획 목록 / 내 목록 -->
+	<select id="listMyPlan" parameterType="String"
+		resultType="planDto">
+		select planId, userId, planName, startDate, endDate
+		from plan where userId=#{userId}
+		order by planId desc;
+	</select>
+
+	<!-- 여행 계획 삭제 -->
+	<delete id="deletePlan" parameterType="Integer">
+		delete from plan
+		where planId=#{planId};
+	</delete>
+
+	<!-- 여행 계획 상세  -->
+	<select id="detailPlan" parameterType="Integer" resultMap="planDetailMap">
+		select p.planId, p.userId, p.planName, p.startDate, p.endDate, p.planMemo, pi.planOrder, pi.contentId, pi.contentMemo
+		from plan p left outer join plan_info pi
+		on p.planId = pi.planId
+		where p.planId=#{planId};
+	</select>
+</mapper>
